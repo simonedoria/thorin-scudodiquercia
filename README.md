@@ -99,7 +99,7 @@ Ensure your .env file is correctly configured.
 
 Run the script:
 
-```bash
+    ```bash
     node app.js
     ```
     
