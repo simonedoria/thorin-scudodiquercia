@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+    <header class="bg-blue-500 p-4 text-white flex justify-between items-center">
+        <h1 class="text-2xl">Thorin Scudodiquercia</h1>
+        <div class="flex items-center">
+            <div class="balance-section mr-4">Bilancio: <%= walletData.balance %>
+            </div>
+            <button onclick="toggleSidebar()"
+                class="bg-blue-700 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded">
+                Mostra Token
+            </button>
+        </div>
+    </header>
+
+    <aside id="sidebar" class="absolute right-0 top-0 h-full w-64 bg-white shadow-lg p-4" style="display: none;">
+        <h2 class="text-xl mb-4">I tuoi Token <b class="cursor-pointer" onclick="toggleSidebar()">(X)</b></h2>
+        <div class="token-container">
+            <% walletData.tokens.forEach(token=> { %>
+                <div class="mb-2">
+                    <p>
+                        <span class="cursor-pointer"
+                            onclick="removeTokenOwned('<%= token.address %>','<%= token.symbol %>')"><b>X</b></span>
+                        <%= token.symbol %> - <%= parseFloat(token.balanceFormatted).toFixed(4) %>
+                    </p>
+                    <% if (token.symbol !=='ETH' ) { %>
+                        <button onclick="swapToken('<%= token.address %>', '<%= token.symbol %>')"
+                            class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 mt-2 rounded">
+                            Swap
+                        </button>
+                        <% } %>
+                </div>
+                <hr>
+                <% }); %>
+        </div>
+        <button onclick="watchToken()"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 mt-2 rounded">
+            Aggiungi token
+        </button>
+    </aside>
+
+    <main class="p-4">
+        <div class="tab">
+            <h1 onclick="toggleId('tokens')" class="text-2xl mb-4 text-underline cursor-pointer">Tokens</h1>
+            <div id="tokens" class="grid grid-cols-2 gap-4">
+                <% tokensData.forEach(token=> { %>
+                    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Symbol:</span> <span>
+                                <%= token.symbol %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Pair Address:</span> <span>
+                                <%= token.pairAddress %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Liquidity:</span> <span>
+                                <br>Token: <%= token.liquidity[0] %><br>WETH: <%= token.liquidity[1] %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Amount Out:</span> <span>
+                                <br>Wei: <%= token.amountOut[0] %><br>With Decimals: <%= token.amountOut[1] %>
+                                        <br>Decimals: <%= token.amountOut[2] %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Token Price:</span> <span>
+                                <%= token.tokenPrice %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Path:</span> <span>
+                                <%= token.path %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Has ABI:</span> <span>
+                                <%= token.hasAbi ? 'Yes' : 'No' %>
+                            </span>
+                        </div>
+                    </div>
+                    <% }); %>
+            </div>
+        </div>
+
+
+        <div class="tab mt-8">
+            <h1 onclick="toggleId('transactions')" class="text-2xl mb-4 text-underline cursor-pointer">Transazioni</h1>
+            <div id="transactions" class="grid grid-cols-2 gap-4">
+                <% transactionsData.forEach(transaction=> { %>
+                    <div class="bg-yellow shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Symbol:</span> <span>
+                                <%= transaction.symbol %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Hash:</span> <span>
+                                <%= transaction.hash %> - <a href="https://etherscan.io/tx/<%= transaction.hash %>"
+                                        target="_blank">Visualizza su Etherscan</a>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Amount Out In:</span> <span>
+                                <%= transaction.amountOutMin %> (<%= transaction.symbol %>)
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Value:</span> <span>
+                                <%= transaction.value %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Max Fee Per Gas:</span> <span>
+                                <%= transaction.maxFeePerGas %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Max Priority Fee Per Gas:</span> <span>
+                                <%= transaction.maxPriorityFeePerGas %>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Nonce:</span> <span>
+                                <%= transaction.nonce %>
+                            </span>
+                        </div>
+                    </div>
+                    <% }); %>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.style.display === "none") {
+                sidebar.style.display = "block";
+            } else {
+                sidebar.style.display = "none";
+            }
+        }
+
+        function toggleId(id) {
+            const element = document.getElementById(id);
+            if (element.style.display === "none") {
+                element.style.display = "block";
+            } else {
+                element.style.display = "none";
+            }
+        }
+
+        function swapToken(tokenAddress, tokenSymbol) {
+            Swal.fire({
+                title: `Confermi di voler swappare il token ${tokenSymbol} in ETH?`,
+                showDenyButton: true,
+                denyButtonText: 'Ho cambiato idea',
+                confirmButtonText: `Confermo lo SWAP per il dididuring`,
+            }).then((result) => {
+                if (!result.isDenied) {
+                    fetch(`http://localhost:8000/swap-token/${tokenAddress}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(response.statusText)
+                            }
+                            
+                            Swal.fire('Token Swappato con successo', '', 'info')
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(
+                                `Richiesta fallita: ${error}`
+                            )
+                        })
+
+                }
+            })
+        }
+
+        function removeTokenOwned(tokenAddress, tokenSymbol) {
+            Swal.fire({
+                title: `Confermi di voler eliminare il token ${tokenSymbol}?`,
+                showDenyButton: true,
+                confirmButtonText: 'Ho cambiato idea',
+                denyButtonText: `Confermo l'eliminazione`,
+            }).then((result) => {
+                if (result.isDenied) {
+                    fetch(`http://localhost:8000/remove-token/${tokenAddress}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(response.statusText)
+                            }
+                            // clear innerhtml inside token-container
+                            document.querySelector('.token-container').innerHTML = '';
+                            for (let result of response.value) {
+                                let htmlToken = `<div class="mb-2"><p>${result.value.symbol} - ${result.value.balanceFormatted}</p>             
+                                    <button onclick="swapToken('${result.value.address}' ,'${result.value.symbol}')"
+                                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 mt-2 rounded">
+                                        Swap
+                                    </button>
+                                </div>`;
+                                document.querySelector('.token-container').insertAdjacentHTML('beforeend', htmlToken)
+                            }
+                            Swal.fire('Token Eliminato con successo', '', 'info')
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(
+                                `Richiesta fallita: ${error}`
+                            )
+                        })
+
+                }
+            })
+        }
+
+        function watchToken() {
+            Swal.fire({
+                title: 'Inserisci l\'indirizzo del token',
+                input: 'text',
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Aggiungi',
+                showLoaderOnConfirm: true,
+                preConfirm: (tokenValue) => {
+                    return fetch(`http://localhost:8000/add-token/${tokenValue}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(response.statusText)
+                            }
+                            return response.json()
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(
+                                `Richiesta fallita: ${error}`
+                            )
+                        })
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let htmlToken = `<div class="mb-2">
+                <p>
+                    <span class="cursor-pointer"
+                            onclick="removeTokenOwned('${result.value.address}','${result.value.symbol}')"><b>X</b></span> ${result.value.symbol} - ${parseFloat(result.value.balanceFormatted).toFixed(4)}
+                </p>
+                
+                    <button onclick="swapToken('${result.value.address}', '${result.value.symbol}')"
+                        class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 mt-2 rounded">
+                        Swap
+                    </button>
+            </div><hr>`;
+                    document.querySelector('.token-container').insertAdjacentHTML('beforeend', htmlToken)
+                    Swal.fire({
+                        title: `${result.value.symbol} aggiunto con successo!`,
+                        icon: 'success'
+                    })
+                }
+            })
+        }
+
+        function renderDashboardData(dt) {
+            // refresh balance
+            let balance = document.querySelector('.balance-section');
+            balance.innerHTML = `Bilancio: ${dt.walletData.balance}`;
+            // refresh tokens
+            let tokenContainer = document.querySelector('.token-container');
+            tokenContainer.innerHTML = '';
+            for (let token of dt.walletData.tokens) {
+                let htmlToken = `<div class="mb-2">
+                <p>
+                    <span class="cursor-pointer"
+                            onclick="removeTokenOwned('${token.address}','${token.symbol}')"><b>X</b></span> ${token.symbol} - ${parseFloat(token.balanceFormatted).toFixed(4)}
+                </p>
+                
+                    <button onclick="swapToken('${token.address}', '${token.symbol}')"
+                        class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 mt-2 rounded">
+                        Swap
+                    </button>
+            </div><hr>`;
+                tokenContainer.insertAdjacentHTML('beforeend', htmlToken)
+            }
+            // refresh transactions
+            let transactionsContainer = document.querySelector('#transactions');
+            transactionsContainer.innerHTML = '';
+            for (let transaction of dt.transactionsData) {
+                let htmlTransaction = `<div class="bg-amber-600 shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Symbol:</span> <span>
+                                ${transaction.symbol}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Hash:</span> <span>
+                                ${transaction.hash} - <a href="https://etherscan.io/tx/${transaction.hash}"
+                                        target="_blank">Visualizza su Etherscan</a>
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Amount Out In:</span> <span>
+                                ${transaction.amountOutMin} (${transaction.symbol})
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Value:</span> <span>
+                                ${transaction.value}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Max Fee Per Gas:</span> <span>
+                                ${transaction.maxFeePerGas}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Max Priority Fee Per Gas:</span> <span>
+                                ${transaction.maxPriorityFeePerGas}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Nonce:</span> <span>
+                                ${transaction.nonce}
+                            </span>
+                        </div>
+                    </div>`;
+                transactionsContainer.insertAdjacentHTML('beforeend', htmlTransaction)
+            }
+            // refresh tokens
+            let tokensContainer = document.querySelector('#tokens');
+            tokensContainer.innerHTML = '';
+            for (let token of dt.tokensData) {
+                let htmlToken = `<div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Symbol:</span> <span>
+                                ${token.symbol}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Pair Address:</span> <span>
+                                ${token.pairAddress}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Liquidity:</span> <span>
+                                <br>Token: ${token.liquidity[0]}<br>WETH: ${token.liquidity[1]}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Amount Out:</span> <span>
+                                <br>Wei: ${token.amountOut[0]}<br>With Decimals: ${token.amountOut[1]}
+                                        <br>Decimals: ${token.amountOut[2]}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Token Price:</span> <span>
+                                ${token.tokenPrice}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Path:</span> <span>
+                                ${token.path}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-bold text-lg">Has ABI:</span> <span>
+                                ${token.hasAbi ? 'Yes' : 'No'}
+                            </span>
+                        </div>
+                    </div>`;
+                tokensContainer.insertAdjacentHTML('beforeend', htmlToken)
+            }
+        }
+
+        setInterval(() => {
+            fetch('http://localhost:8000/dashboard-data')
+                .then(response => response.json())
+                .then(data => {
+                    renderDashboardData(data)
+                })
+        }, 5000);
+    </script>
+</body>
+
+</html>
