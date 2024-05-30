@@ -87,13 +87,14 @@ Use the Flashbots relay URL for submitting bundles:
 
 ```plaintext
 FLASHBOTS_URL=https://relay.flashbots.net
-
+  ```
 For testing on the Goerli testnet, use:
 
 ```plaintext
 FLASHBOTS_URL=https://relay-goerli.flashbots.net
+  ```
 
-Running the Script
+**Running the Script**
 Ensure your .env file is correctly configured.
 
 Run the script:
